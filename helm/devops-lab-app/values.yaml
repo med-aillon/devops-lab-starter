@@ -1,0 +1,23 @@
+image:
+  repository: REPLACE_WITH_YOUR_DOCKERHUB/devops-lab-app
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+
+service:
+  type: NodePort
+  port: 80
+  targetPort: 3000
+
+ingress:
+  enabled: true
+  className: ""
+  hosts:
+    - host: devops-lab.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+resources: {}
