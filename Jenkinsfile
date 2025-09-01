@@ -27,10 +27,10 @@ pipeline {
     sh '''
       set -e
       echo "Using KUBECONFIG=$KUBECONFIG"
-      kubectl get ns
-      sed "s#IMAGE_PLACEHOLDER#$IMAGE#g" deploy/k8s.yaml > /tmp/k8s.yaml
-      kubectl apply -f /tmp/k8s.yaml
-      kubectl rollout status deploy/lab-app --timeout=120s
+      kubectl --kubeconfig "$KUBECONFIG" get ns
+  sed "s#IMAGE_PLACEHOLDER#$IMAGE#g" deploy/k8s.yaml > /tmp/k8s.yaml
+  kubectl --kubeconfig "$KUBECONFIG" apply -f /tmp/k8s.yaml
+  kubectl --kubeconfig "$KUBECONFIG" rollout status deploy/lab-app --timeout=120s
       kubectl get deploy,po,svc -l app=lab-app
     '''
   }
