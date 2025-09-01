@@ -18,5 +18,23 @@ pipeline {
         }
       }
     }
+    stage('Deploy to Minikube (kubectl)') {
+  environment {
+    KUBECONFIG = "/var/jenkins_home/.kube/config"
+    HOME       = "/var/jenkins_home"
+  }
+  steps {
+    sh '''
+      set -e
+      echo "Using KUBECONFIG=$KUBECONFIG"
+      kubectl get ns
+      sed "s#IMAGE_PLACEHOLDER#$IMAGE#g" deploy/k8s.yaml > /tmp/k8s.yaml
+      kubectl apply -f /tmp/k8s.yaml
+      kubectl rollout status deploy/lab-app --timeout=120s
+      kubectl get deploy,po,svc -l app=lab-app
+    '''
+  }
+}
+
   }
 }
