@@ -12,7 +12,7 @@ pipeline {
         script{
           def branch = env.BRANCH_NAME
           if(!branch || branch == 'null' ){
-            branch = sh(retournStdout : true,script: 'git rev-parse --abbrev-ref HEAD').trim()
+            branch = sh(returnStdout: true, script: 'git rev-parse --abbrev-ref HEAD').trim()
           }
           branch = branch.replaceAll('[^A-Za-z0-9._-]+','-')
           def sha = sh(returnStdout: true, script: 'git rev-parse --short=7 HEAD').trim()
