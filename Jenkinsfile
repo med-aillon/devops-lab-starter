@@ -4,11 +4,24 @@ pipeline {
     REGISTRY = "medaillon1802" 
     APP="devops-app-lab"         
     IMAGE_REPO = "${REGISTRY}/${APP}"
-    IMAGE_TAG  = "${env.BRANCH_NAME}-${env.GIT_COMMIT.take(7)}-${env.BUILD_NUMBER}"
-    IMAGE    = "${IMAGE_REPO}:${IMAGE_TAG}"
   }
   stages {
     stage('Checkout') { steps { checkout scm } }
+    stage('Compute Image Tag '){
+      steps {
+        script{
+          def branch = env.BRANCH_NAME
+          if(!branch || branch == 'null' ){
+            branch = sh(retournStdout : true,script'git rev-parse --abbrev-ref HEAD.trim()')
+          }
+          branch = branch.replaceAll('[^A-Za-z0-9._-]+','-')
+          def sha = sh(returnStdout: true, script: 'git rev-parse --short=7 HEAD').trim()
+          env.IMAGE_TAG = "${branch}-${sha}-${env.BUILD_NUMBER}"
+      env.IMAGE     = "${env.IMAGE_REPO}:${env.IMAGE_TAG}"
+      sh 'echo \"IMAGE=$IMAGE\"'
+        }
+      }
+    }
     stage('Build')    { steps { sh 'docker build -t $IMAGE ./app' } }
     stage('Test')     { steps { sh 'docker run --rm $IMAGE npm test' } }
     stage('Login & Push') {
