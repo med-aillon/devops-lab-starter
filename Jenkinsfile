@@ -1,8 +1,11 @@
 pipeline {
   agent any
   environment {
-    REGISTRY = "medaillon1802"              // <- mets ton Docker ID si différent
-    IMAGE    = "${REGISTRY}/devops-lab-app:latest"
+    REGISTRY = "medaillon1802" 
+    APP="devops-app-lab"         
+    IMAGE_REPO = "${REGISTRY}/${APP}"
+    IMAGE_TAG  = "${env.BRANCH_NAME}-${env.GIT_COMMIT.take(7)}-${env.BUILD_NUMBER}"
+    IMAGE    = "${IMAGE_REPO}:${IMAGE_TAG}"
   }
   stages {
     stage('Checkout') { steps { checkout scm } }
@@ -12,9 +15,12 @@ pipeline {
       steps {
         withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
           sh '''
-            echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
-            docker push $IMAGE
-          '''
+  echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+  docker push $IMAGE
+  docker tag $IMAGE ${IMAGE_REPO}:latest
+  docker push ${IMAGE_REPO}:latest
+'''
+
         }
       }
     }
