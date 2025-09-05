@@ -2,26 +2,41 @@ pipeline {
   agent any
   environment {
     REGISTRY = "medaillon1802" 
-    APP="devops-app-lab"         
+    APP="devops-lab-app"         
     IMAGE_REPO = "${REGISTRY}/${APP}"
   }
   stages {
     stage('Checkout') { steps { checkout scm } }
-    stage('Compute Image Tag '){
-      steps {
-        script{
-          def branch = env.BRANCH_NAME
-          if(!branch || branch == 'null' ){
-            branch = sh(returnStdout: true, script: 'git rev-parse --abbrev-ref HEAD').trim()
-          }
-          branch = branch.replaceAll('[^A-Za-z0-9._-]+','-')
-          def sha = sh(returnStdout: true, script: 'git rev-parse --short=7 HEAD').trim()
-          env.IMAGE_TAG = "${branch}-${sha}-${env.BUILD_NUMBER}"
-      env.IMAGE     = "${env.IMAGE_REPO}:${env.IMAGE_TAG}"
-      sh 'echo \"IMAGE=$IMAGE\"'
-        }
+    stage('Compute Image Tag') {
+  steps {
+    script {
+      // 1) essayer variables Jenkins
+      def branch = env.BRANCH_NAME ?: (env.GIT_BRANCH ? env.GIT_BRANCH.tokenize('/').last() : null)
+
+      // 2) si toujours vide/HEAD, récupérer depuis git
+      if (!branch || branch == 'HEAD' || branch == 'null') {
+        branch = sh(returnStdout: true, script: 'git rev-parse --abbrev-ref HEAD || true').trim()
       }
+      if (!branch || branch == 'HEAD') {
+        branch = sh(returnStdout: true, script: "git rev-parse --abbrev-ref origin/HEAD | sed 's@^origin/@@' || true").trim()
+      }
+      if (!branch) {
+        branch = sh(returnStdout: true, script: "git branch -r --contains HEAD | sed -n 's#.*origin/##p' | head -1 || true").trim()
+      }
+      if (!branch) { branch = 'main' }  // dernier fallback
+
+      // 3) nettoyer, SHA, tag final
+      branch = branch.replaceAll('[^A-Za-z0-9._-]+','-')
+      def sha = sh(returnStdout: true, script: 'git rev-parse --short=7 HEAD').trim()
+
+      env.IMAGE_TAG  = "${branch}-${sha}-${env.BUILD_NUMBER}"
+      env.IMAGE      = "${env.IMAGE_REPO}:${env.IMAGE_TAG}"
+
+      echo "IMAGE=${env.IMAGE}"
     }
+  }
+}
+
     stage('Build')    { steps { sh 'docker build -t $IMAGE ./app' } }
     stage('Test')     { steps { sh 'docker run --rm $IMAGE npm test' } }
     stage('Login & Push') {
